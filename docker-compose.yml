@@ -1,0 +1,112 @@
+## docker-compose run -rm start-dependencies (to run spring config first)
+## docker-compose up -d zuul-server --build (to start zuul in background mode, and then call
+##  other services)
+## docker-compose down to remove all instances
+
+version: "3.7"
+
+services:
+
+  start-dependencies:
+    image: dadarek/wait-for-dependencies
+    depends_on:
+      - config-server
+    command: config-server:8888
+
+  config-server:
+    image: arneam/num-config
+    build:
+      context: ../num-config
+      args:
+        JAR_FILE: target/num-config-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8888:8888"
+    tty:
+      true
+    restart:
+      unless-stopped
+    networks:
+      - default
+
+  eureka-server:
+    image: arneam/num-eureka
+    build:
+      context: ../num-eureka
+      args:
+        JAR_FILE: target/num-eureka-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8010:8010"
+    tty:
+      true
+    restart:
+      unless-stopped
+    networks:
+      - default
+
+  zuul-server:
+    image: arneam/num-zuul
+    build:
+      context: ../num-zuul
+      args:
+        JAR_FILE: target/num-zuul-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8011:8011"
+    tty:
+      true
+    restart:
+      unless-stopped
+    depends_on:
+      - eureka-server
+      - num-text-reducer
+      - num-vowel-reducer
+      - num-consonant-reducer
+    networks:
+      - default
+
+  num-text-reducer:
+    image: arneam/num-text-reducer
+    build:
+      context: ../num-text-reducer
+      args:
+        JAR_FILE: target/num-text-reducer-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8020:8020"
+    tty:
+      true
+    restart:
+      unless-stopped
+    networks:
+      - default
+
+  num-vowel-reducer:
+    image: arneam/num-vowel-reducer
+    build:
+      context: ../num-vowel-reducer
+      args:
+        JAR_FILE: target/num-vowel-reducer-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8021:8021"
+    tty:
+      true
+    restart:
+      unless-stopped
+    networks:
+      - default
+
+  num-consonant-reducer:
+    image: arneam/num-consonant-reducer
+    build:
+      context: ../num-consonant-reducer
+      args:
+        JAR_FILE: target/num-consonant-reducer-0.0.1-SNAPSHOT.jar
+    ports:
+      - "8022:8022"
+    tty:
+      true
+    restart:
+      unless-stopped
+    networks:
+      - default
+
+networks:
+  default: {}
